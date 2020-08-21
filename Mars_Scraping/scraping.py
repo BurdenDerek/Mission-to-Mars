@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup as soup
 import pandas as pd
 import datetime as dt
 
-
+# run all the other functions and format the data
 def scrape_all():
     # Initiate headless driver for deployment
     browser = Browser("chrome", executable_path="chromedriver", headless=True)
@@ -17,6 +17,7 @@ def scrape_all():
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
         "facts": mars_facts(),
+        "hemispheres": hemispheres(browser),
         "last_modified": dt.datetime.now()
     }
 
@@ -24,7 +25,7 @@ def scrape_all():
     browser.quit()
     return data
 
-
+# mars news, scrapes the title and teaser
 def mars_news(browser):
 
     # Scrape Mars News
@@ -52,7 +53,7 @@ def mars_news(browser):
 
     return news_title, news_p
 
-
+# featured image, scapes the featured image from the page
 def featured_image(browser):
     # Visit URL
     url = 'https://www.jpl.nasa.gov/spaceimages/?search=&category=Mars'
@@ -84,6 +85,7 @@ def featured_image(browser):
 
     return img_url
 
+# mars fact, scrapes a datafrmae
 def mars_facts():
     # Add try/except for error handling
     try:
@@ -99,6 +101,49 @@ def mars_facts():
 
     # Convert dataframe into HTML format, add bootstrap
     return df.to_html(classes="table table-striped")
+
+# Challenge
+def hemispheres(browser):
+
+    url = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
+    browser.visit(url)
+
+    hemisphere_image_urls = []
+
+    # find the hemispheres
+    links = browser.find_by_css('a.product-item h3')
+
+    # click links and scrape 
+    for i in range(len(links)):
+        
+        # we have to find the elements on each loop to avoid a state element execption
+        browser.find_by_css('a.product-item h3')[i].click()
+        hemisphere_data = scrap_hemisphere(browser.html)
+        hemisphere_image_urls.append(hemisphere_data)
+        
+        # back to previous page
+        browser.back()
+
+    return hemisphere_image_urls
+
+#
+def scrap_hemisphere(html_text):
+
+    hemisphere_soup = soup(html_text, 'html.parser')
+
+    try:
+        title_element = hemisphere_soup.find('h2', class_='title').get_text()
+        sample_element = hemisphere_soup.find('a', text='Sample').get("href")
+    except AttributeError:
+        title_element = None
+        sample_element = None
+
+    hemisphere_dict = {
+        'title': title_element,
+        'img_url': sample_element
+    }
+
+    return hemisphere_dict
 
 if __name__ == "__main__":
 
